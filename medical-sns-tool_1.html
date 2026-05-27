@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>医療SNS広報ネタ収集ツール</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#f4f2ee;--surface:#fff;--surface2:#f9f8f6;
+    --border:#e2ddd6;--border2:#ccc7be;
+    --text:#1a1816;--text2:#5a5650;--text3:#9a948c;
+    --accent:#2d6a4f;--accent-light:#d8f3dc;
+    --accent2:#e76f51;--accent2-light:#fde8e2;
+    --warn:#e9c46a;--warn-light:#fdf3d0;
+    --info:#3a86ff;--info-light:#dceeff;
+    --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.7}
+
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px}
+  .logo-text{font-weight:700;font-size:15px;letter-spacing:-.3px}
+  .logo-sub{font-size:11px;color:var(--text3);margin-top:-2px}
+
+  .app{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 56px)}
+  aside{background:var(--surface);border-right:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:18px}
+  main{padding:24px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+
+  .section-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+  .field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
+  .field input,.field textarea,.field select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);font-family:inherit;font-size:13px;color:var(--text);transition:border-color .15s;outline:none}
+  .field input:focus,.field textarea:focus{border-color:var(--accent)}
+  .field input[type="password"]{font-family:'DM Mono',monospace;letter-spacing:1px}
+
+  .checkbox-group{display:flex;flex-direction:column;gap:6px}
+  .checkbox-item{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+  .checkbox-item input{width:auto;margin:0;accent-color:var(--accent)}
+
+  .btn-primary{width:100%;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,transform .1s}
+  .btn-primary:hover{background:#235c42}
+  .btn-primary:active{transform:scale(.98)}
+  .btn-primary:disabled{background:var(--border2);cursor:not-allowed;transform:none}
+
+  .btn-sm{padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:background .15s,border-color .15s;white-space:nowrap}
+  .btn-sm:hover{background:var(--border);border-color:var(--border2)}
+  .btn-sm.accent{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
+
+  .status-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px;font-size:13px;min-height:52px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);flex-shrink:0}
+  .status-dot.running{background:var(--accent);animation:pulse 1.2s infinite}
+  .status-dot.done{background:var(--accent)}
+  .status-dot.error{background:var(--accent2)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .status-text{color:var(--text2);flex:1}
+  .status-count{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+
+  .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .filter-label{font-size:12px;color:var(--text3);margin-right:4px}
+  .btn-filter{padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-family:inherit;font-size:12px;cursor:pointer;color:var(--text2);transition:background .15s}
+  .btn-filter.active{background:var(--accent-light);border-color:var(--accent);color:var(--accent);font-weight:700}
+
+  .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .results-title{font-size:15px;font-weight:700}
+  .results-meta{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace}
+  .articles-grid{display:flex;flex-direction:column;gap:12px}
+
+  .article-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);transition:border-color .15s}
+  .article-card:hover{border-color:var(--border2)}
+  .article-card.importance-高{border-left:3px solid var(--accent2)}
+  .article-card.importance-中{border-left:3px solid var(--warn)}
+  .article-card.importance-低{border-left:3px solid var(--border2)}
+
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .card-title{font-size:14px;font-weight:700;line-height:1.4;flex:1}
+  .card-title a{color:var(--text);text-decoration:none}
+  .card-title a:hover{color:var(--accent)}
+  .badges{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+  .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap}
+  .badge-高{background:var(--accent2-light);color:#b34030}
+  .badge-中{background:var(--warn-light);color:#8a6f10}
+  .badge-低{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+  .badge-cat{background:var(--info-light);color:#1a5cbf}
+  .badge-source{background:var(--surface2);color:var(--text3);border:1px solid var(--border);font-weight:400}
+
+  .card-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:11px;color:var(--text3);flex-wrap:wrap}
+  .card-reason{font-size:12px;color:var(--text2);background:var(--surface2);padding:8px 10px;border-radius:6px;margin-bottom:10px;border-left:2px solid var(--border2)}
+
+  .draft-section{margin-top:10px}
+  .draft-label{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+  .draft-text{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:var(--accent-light);font-family:inherit;font-size:13px;color:var(--text);line-height:1.6;resize:vertical;min-height:80px;outline:none;transition:border-color .15s}
+  .draft-text:focus{border-color:var(--accent)}
+  .hashtags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .hashtag{font-size:11px;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:20px;font-family:'DM Mono',monospace}
+
+  .card-actions{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+  .notion-result{font-size:11px;padding:3px 8px;border-radius:20px;margin-left:auto}
+  .notion-result.success{background:var(--accent-light);color:var(--accent)}
+  .notion-result.error{background:var(--accent2-light);color:var(--accent2)}
+
+  /* 手動入力エリア */
+  .manual-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+  .manual-title{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text2)}
+  .step-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--accent);color:#fff;border-radius:50%;font-size:11px;font-weight:700;margin-right:6px;flex-shrink:0}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--text3)}
+  .empty-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+  .empty-title{font-size:16px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+  #toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
+  #toast.show{opacity:1;transform:translateY(0)}
+  .divider{height:1px;background:var(--border);margin:4px 0}
+
+  /* 分析待ち状態 */
+  .pending-section{background:var(--warn-light);border:1px solid var(--warn);border-radius:var(--radius);padding:14px 16px;font-size:13px}
+  .pending-title{font-weight:700;color:#8a6f10;margin-bottom:6px}
+  .pending-articles{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;margin-bottom:10px}
+  .pending-item{font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid var(--warn);display:flex;gap:8px}
+  .pending-item:last-child{border-bottom:none}
+
+  .result-paste-area{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;min-height:120px;resize:vertical;outline:none;background:var(--surface2)}
+  .result-paste-area:focus{border-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">＋</div>
+    <div>
+      <div class="logo-text">医療SNS広報ツール</div>
+      <div class="logo-sub">情報収集 &amp; Notion自動登録</div>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+  <aside>
+    <div>
+      <div class="section-label">収集ソース</div>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" id="src-news" checked> 医療ニュース</label>
+        <label class="checkbox-item"><input type="checkbox" id="src-mhlw" checked> 厚労省・政府発表</label>
+        <label class="checkbox-item"><input type="checkbox" id="src-pubmed"> PubMed（医学論文）</label>
+      </div>
+    </div>
+
+    <div id="pubmed-section" style="display:none">
+      <div class="section-label">PubMed 検索語</div>
+      <div class="field">
+        <textarea id="pubmed-query" rows="3" placeholder="1行1クエリ&#10;例: 糖尿病 治療&#10;がん 免疫療法">内科 診療ガイドライン
+がん 治療 新薬
+糖尿病 管理</textarea>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-label">Notion 連携（任意）</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>インテグレーション トークン</label>
+        <input type="password" id="notion-token" placeholder="secret_..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label>データベース ID</label>
+        <input type="text" id="notion-db-id" placeholder="32桁のID" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="btn-primary" id="run-btn" onclick="runCollection()">
+      ▶ 情報を収集する
+    </button>
+  </aside>
+
+  <main>
+    <div class="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">「情報を収集する」を押してください</span>
+      <span class="status-count" id="status-count"></span>
+    </div>
+
+    <div class="filters" id="filters" style="display:none">
+      <span class="filter-label">表示:</span>
+      <button class="btn-filter active" onclick="setFilter('all',this)">すべて</button>
+      <button class="btn-filter" onclick="setFilter('高',this)">重要度 高</button>
+      <button class="btn-filter" onclick="setFilter('中',this)">重要度 中</button>
+      <button class="btn-filter" onclick="setFilter('患者向け',this)">患者向け</button>
+      <button class="btn-filter" onclick="setFilter('一般広報',this)">一般広報</button>
+    </div>
+
+    <div id="results">
+      <div class="empty">
+        <div class="empty-icon">🏥</div>
+        <div class="empty-title">情報がまだありません</div>
+        <div>左のパネルで設定して収集を開始してください</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// RSS FEEDS（日本語ソースのみ）
+// ─────────────────────────────────────────────
+const RSS_FEEDS = [
+  { name:"QLifePro",    url:"https://api.rss2json.com/v1/api.json?rss_url=https://www.qlifepro.com/news/feed/",             category:"医療ニュース" },
+  { name:"ミクスOnline", url:"https://api.rss2json.com/v1/api.json?rss_url=https://www.mixonline.jp/tabid/55/Default.aspx?pf=rss", category:"医療ニュース" },
+  { name:"薬事日報",     url:"https://api.rss2json.com/v1/api.json?rss_url=https://www.yakuji.co.jp/feed",                 category:"医療ニュース" },
+  { name:"医療介護CBニュース", url:"https://api.rss2json.com/v1/api.json?rss_url=https://www.cbnews.jp/rss/",             category:"医療ニュース" },
+];
+const MHLW_FEEDS = [
+  { name:"厚労省 新着",  url:"https://api.rss2json.com/v1/api.json?rss_url=https://www.mhlw.go.jp/rss/shinchaku.rdf",      category:"政府・厚労省" },
+  { name:"国立がん研究センター", url:"https://api.rss2json.com/v1/api.json?rss_url=https://www.ncc.go.jp/jp/rss/index.xml", category:"政府・厚労省" },
+];
+
+let allArticles = [];
+let currentFilter = 'all';
+
+// ─────────────────────────────────────────────
+// UI HELPERS
+// ─────────────────────────────────────────────
+function setStatus(text, state='idle', count='') {
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-count').textContent = count;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot' + (state !== 'idle' ? ' ' + state : '');
+}
+function showToast(msg, d=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), d);
+}
+
+document.getElementById('src-pubmed').addEventListener('change', e => {
+  document.getElementById('pubmed-section').style.display = e.target.checked ? 'block' : 'none';
+});
+
+// ─────────────────────────────────────────────
+// RSS FETCH
+// ─────────────────────────────────────────────
+async function fetchRSS(feeds) {
+  const articles = [];
+  for (const feed of feeds) {
+    try {
+      const res = await fetch(feed.url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const item of (data.items || []).slice(0, 6)) {
+        const title = (item.title || '').trim();
+        if (!title) continue;
+        articles.push({
+          id: btoa(encodeURIComponent(item.link||title)).substring(0,12),
+          title,
+          url: item.link || '',
+          summary: (item.description||item.content||'').replace(/<[^>]+>/g,'').substring(0,200),
+          source: feed.name,
+          category: feed.category,
+          published: (item.pubDate||'').substring(0,16),
+        });
+      }
+    } catch(e) { console.warn('RSS失敗:', feed.name, e); }
+  }
+  return articles;
+}
+
+// ─────────────────────────────────────────────
+// PubMed FETCH
+// ─────────────────────────────────────────────
+async function fetchPubMed(queries) {
+  const articles = [];
+  const base = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+  for (const query of queries) {
+    if (!query.trim()) continue;
+    try {
+      const sr = await fetch(`${base}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=4&retmode=json&sort=pub_date&datetype=pdat&reldate=60`);
+      const sd = await sr.json();
+      const ids = sd.esearchresult?.idlist || [];
+      if (!ids.length) continue;
+      const smr = await fetch(`${base}/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`);
+      const smd = await smr.json();
+      const result = smd.result || {};
+      for (const id of ids) {
+        const doc = result[id];
+        if (!doc?.title) continue;
+        const authors = (doc.authors||[]).slice(0,3).map(a=>a.name).join(', ');
+        articles.push({
+          id: `pm_${id}`,
+          title: doc.title,
+          url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+          summary: `著者: ${authors} | 雑誌: ${doc.source||''} | 発行: ${doc.pubdate||''}`,
+          source: 'PubMed',
+          category: '医学論文・学会',
+          published: doc.pubdate || '',
+        });
+      }
+      await new Promise(r=>setTimeout(r,400));
+    } catch(e) { console.warn('PubMed失敗:', query, e); }
+  }
+  return articles;
+}
+
+// ─────────────────────────────────────────────
+// NOTION WRITE
+// ─────────────────────────────────────────────
+async function writeToNotion(article) {
+  const token = document.getElementById('notion-token').value.trim();
+  const dbId  = document.getElementById('notion-db-id').value.trim().replace(/-/g,'');
+  if (!token || !dbId) return { ok:false, error:'Notion設定が未入力' };
+  const an = article.analysis || {};
+  const body = {
+    parent: { database_id: dbId },
+    properties: {
+      'タイトル':     { title: [{ text:{ content: article.title.substring(0,200) } }] },
+      '重要度':       { select: { name: an.importance||'低' } },
+      'ステータス':   { select: { name: '未確認' } },
+      '投稿カテゴリ': { select: { name: an.post_category||'要確認' } },
+      '情報ソース':   { select: { name: article.source.substring(0,100) } },
+      'カテゴリ':     { select: { name: article.category } },
+      'ハッシュタグ': { multi_select: (an.hashtags||[]).slice(0,5).map(h=>({ name:h.replace(/^#/,'').substring(0,30) })) },
+      '元記事URL':    { url: article.url },
+      '記事ID':       { rich_text: [{ text:{ content: article.id } }] },
+      '収集日時':     { date: { start: new Date().toISOString() } },
+      'SNS投稿案':    { rich_text: [{ text:{ content: (an.sns_post_draft||'').substring(0,2000) } }] },
+      '選定理由':     { rich_text: [{ text:{ content: (an.reason||'').substring(0,200) } }] },
+    },
+  };
+  try {
+    const res = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: { 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json', 'Notion-Version':'2022-06-28' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) { const e=await res.json(); return { ok:false, error:e.message||`HTTP ${res.status}` }; }
+    return { ok:true };
+  } catch(e) { return { ok:false, error:e.message }; }
+}
+
+// ─────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.btn-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderArticles();
+}
+
+function renderArticles() {
+  const filtered = allArticles.filter(a => {
+    if (currentFilter==='all') return true;
+    if (currentFilter==='高'||currentFilter==='中'||currentFilter==='低') return a.analysis?.importance===currentFilter;
+    return a.analysis?.post_category===currentFilter;
+  });
+  const container = document.getElementById('results');
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">該当する記事がありません</div></div>';
+    return;
+  }
+  const highCount = filtered.filter(a=>a.analysis?.importance==='高').length;
+  const hasNotion = document.getElementById('notion-token').value.trim();
+  container.innerHTML = `
+    <div class="results-header">
+      <div class="results-title">${filtered.length}件の記事</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="results-meta">重要度「高」 ${highCount}件</div>
+        ${hasNotion ? `<button class="btn-sm accent" onclick="notionWriteAll()">📤 全件Notionに登録</button>` : ''}
+      </div>
+    </div>
+    <div class="articles-grid">${filtered.map((a,i)=>renderCard(a,i)).join('')}</div>`;
+}
+
+function renderCard(a, i) {
+  const an = a.analysis || {};
+  const imp = an.importance || '低';
+  const draft = (an.sns_post_draft||'').replace(/"/g,'&quot;');
+  const hashtags = (an.hashtags||[]).map(h=>`<span class="hashtag">#${h.replace(/^#/,'')}</span>`).join('');
+  return `
+  <div class="article-card importance-${imp}" id="card-${i}">
+    <div class="card-top">
+      <div class="card-title"><a href="${a.url}" target="_blank" rel="noopener">${a.title}</a></div>
+      <div class="badges">
+        <span class="badge badge-${imp}">重要度 ${imp}</span>
+        <span class="badge badge-cat">${an.post_category||''}</span>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span class="badge badge-source">${a.source}</span>
+      <span>${a.category}</span>
+      ${a.published ? `<span>${a.published}</span>` : ''}
+    </div>
+    ${an.reason ? `<div class="card-reason">📌 ${an.reason}</div>` : ''}
+    ${draft ? `
+    <div class="draft-section">
+      <div class="draft-label">SNS 投稿案</div>
+      <textarea class="draft-text" id="draft-${i}">${draft}</textarea>
+      <div class="hashtags">${hashtags}</div>
+    </div>` : '<div style="font-size:12px;color:var(--text3);margin-top:8px">※ 投稿案なし（不適切と判定）</div>'}
+    <div class="card-actions">
+      <button class="btn-sm" onclick="copyDraft(${i})">📋 コピー</button>
+      <button class="btn-sm" id="notion-btn-${i}" onclick="notionWrite(${i},this)">📤 Notionに登録</button>
+      <span class="notion-result" id="notion-result-${i}"></span>
+    </div>
+  </div>`;
+}
+
+async function copyDraft(i) {
+  const el = document.getElementById(`draft-${i}`);
+  const tags = (allArticles[i]?.analysis?.hashtags||[]).map(h=>`#${h.replace(/^#/,'')}`).join(' ');
+  const text = (el?.value||'') + (tags ? '\n\n' + tags : '');
+  try { await navigator.clipboard.writeText(text); showToast('コピーしました'); }
+  catch { showToast('コピー失敗 - 手動でコピーしてください'); }
+}
+
+async function notionWrite(i, btn) {
+  const token = document.getElementById('notion-token').value.trim();
+  const dbId  = document.getElementById('notion-db-id').value.trim();
+  if (!token || !dbId) { showToast('NotionのトークンとDB IDを入力してください'); return; }
+  btn.disabled = true; btn.textContent = '登録中...';
+  const el = document.getElementById(`draft-${i}`);
+  if (el) allArticles[i].analysis.sns_post_draft = el.value;
+  const r = await writeToNotion(allArticles[i]);
+  const res = document.getElementById(`notion-result-${i}`);
+  if (r.ok) {
+    btn.textContent = '✓ 登録済み';
+    res.className = 'notion-result success'; res.textContent = 'Notionに登録しました';
+    showToast('Notionに登録しました');
+  } else {
+    btn.disabled = false; btn.textContent = '📤 Notionに登録';
+    res.className = 'notion-result error'; res.textContent = `エラー: ${r.error}`;
+    showToast(`登録失敗: ${r.error}`);
+  }
+}
+
+async function notionWriteAll() {
+  const token = document.getElementById('notion-token').value.trim();
+  if (!token) { showToast('Notionトークンを入力してください'); return; }
+  const targets = allArticles.filter(a=>a.analysis?.post_category!=='不適切');
+  setStatus(`Notionに一括登録中...`, 'running', `0/${targets.length}件`);
+  let done=0, failed=0;
+  for (let i=0; i<allArticles.length; i++) {
+    if (allArticles[i].analysis?.post_category==='不適切') continue;
+    const el = document.getElementById(`draft-${i}`);
+    if (el) allArticles[i].analysis.sns_post_draft = el.value;
+    const r = await writeToNotion(allArticles[i]);
+    if (r.ok) {
+      done++;
+      const btn = document.getElementById(`notion-btn-${i}`);
+      if (btn) { btn.textContent='✓ 登録済み'; btn.disabled=true; }
+      const res = document.getElementById(`notion-result-${i}`);
+      if (res) { res.className='notion-result success'; res.textContent='登録済み'; }
+    } else { failed++; }
+    setStatus(`Notionに一括登録中...`, 'running', `${done}/${targets.length}件`);
+    await new Promise(r=>setTimeout(r,350));
+  }
+  setStatus(`一括登録完了`, 'done', `${done}件登録 / ${failed}件失敗`);
+  showToast(`Notion登録完了: ${done}件`);
+}
+
+// ─────────────────────────────────────────────
+// PARSE CLAUDE RESPONSE（チャットからJSON貼り付け）
+// ─────────────────────────────────────────────
+function parseClaudeResponse() {
+  const text = document.getElementById('claude-response').value.trim();
+  if (!text) { showToast('Claudeの回答を貼り付けてください'); return; }
+  try {
+    const cleaned = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(cleaned);
+    const items = parsed.articles || parsed;
+    let matched = 0;
+    for (const item of items) {
+      const idx = (item.index||1) - 1;
+      if (idx >= 0 && idx < allArticles.length) {
+        allArticles[idx].analysis = item;
+        matched++;
+      }
+    }
+    document.getElementById('pending-section').style.display = 'none';
+    document.getElementById('filters').style.display = 'flex';
+    renderArticles();
+    const high = allArticles.filter(a=>a.analysis?.importance==='高').length;
+    setStatus('分析完了', 'done', `${allArticles.length}件 / 重要度「高」${high}件`);
+    showToast(`${matched}件の分析結果を取り込みました`);
+  } catch(e) {
+    showToast('JSON解析に失敗しました。Claudeの回答をそのまま貼り付けてください');
+    console.error(e);
+  }
+}
+
+// ─────────────────────────────────────────────
+// MAIN RUN
+// ─────────────────────────────────────────────
+async function runCollection() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⏳ 収集中...';
+  allArticles = [];
+  document.getElementById('filters').style.display = 'none';
+  document.getElementById('results').innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">記事を収集しています...</div></div>';
+
+  const useNews   = document.getElementById('src-news').checked;
+  const useMhlw   = document.getElementById('src-mhlw').checked;
+  const usePubmed = document.getElementById('src-pubmed').checked;
+  const pubmedQueries = document.getElementById('pubmed-query').value.split('\n').map(s=>s.trim()).filter(Boolean);
+
+  let raw = [];
+  if (useNews)   { setStatus('医療ニュースを取得中...','running'); raw.push(...await fetchRSS(RSS_FEEDS)); }
+  if (useMhlw)   { setStatus('厚労省情報を取得中...','running');   raw.push(...await fetchRSS(MHLW_FEEDS)); }
+  if (usePubmed) { setStatus('PubMed論文を取得中...','running');   raw.push(...await fetchPubMed(pubmedQueries)); }
+
+  btn.disabled = false; btn.textContent = '▶ 情報を収集する';
+
+  if (!raw.length) {
+    setStatus('記事を取得できませんでした','error');
+    return;
+  }
+
+  allArticles = raw;
+  setStatus(`${raw.length}件を収集しました。次にClaudeに分析を依頼してください`, 'running', `${raw.length}件`);
+
+  // Claudeへ送るプロンプトを生成してsendPromptで依頼
+  const articlesText = raw.map((a,i) =>
+    `[記事${i+1}]\nタイトル: ${a.title}\n出典: ${a.source}（${a.category}）\n概要: ${a.summary}\nURL: ${a.url}`
+  ).join('\n\n');
+
+  const prompt = `以下の医療・健康関連記事を分析して、病院SNSアカウントの広報担当者向けに整理してください。
+
+【記事一覧】
+${articlesText}
+
+【出力形式】
+以下のJSON形式のみで出力してください（説明文・マークダウン不要）:
+{"articles":[{"index":1,"importance":"高|中|低","post_category":"患者向け|医療従事者向け|一般広報|不適切","sns_post_draft":"SNS投稿文案（200字以内、平易な日本語、ハッシュタグなし）","hashtags":["タグ1","タグ2","タグ3"],"reason":"選定理由（30字以内）"}]}
+
+【判定基準】
+- 「高」: 患者の治療・健康管理に直結する新情報
+- 「中」: 予防医療・生活習慣・新治療法
+- 「低」: 一般向けでない学術情報
+- 「不適切」: デマの可能性・センセーショナル・病院イメージに不適
+投稿文は患者・一般市民が読める平易な日本語で。`;
+
+  // ツール内にプロンプト表示エリアを出す（コピー用）
+  showPendingSection(raw, prompt);
+}
+
+function showPendingSection(articles, prompt) {
+  const resultsEl = document.getElementById('results');
+
+  const itemsHtml = articles.map((a,i) =>
+    `<div class="pending-item"><span style="color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0">${i+1}</span><span>${a.title}</span></div>`
+  ).join('');
+
+  resultsEl.innerHTML = `
+    <div class="pending-section" id="pending-section">
+      <div class="pending-title">📋 ステップ1: 収集完了（${articles.length}件）— Claudeに分析を依頼してください</div>
+      <div class="pending-articles">${itemsHtml}</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;color:#8a6f10;margin-bottom:6px">以下のプロンプトをコピーして、このチャット画面で送信してください：</div>
+        <textarea readonly id="prompt-to-copy" style="width:100%;padding:8px;border:1px solid var(--warn);border-radius:6px;font-size:11px;font-family:'DM Mono',monospace;background:#fff;min-height:80px;resize:vertical">${prompt.replace(/</g,'&lt;')}</textarea>
+        <button class="btn-sm" style="margin-top:6px" onclick="copyPrompt()">📋 プロンプトをコピー</button>
+      </div>
+
+      <div style="margin-top:16px;border-top:1px solid var(--warn);padding-top:12px">
+        <div style="font-size:12px;color:#8a6f10;margin-bottom:6px">
+          <b>ステップ2:</b> Claudeの返答（JSON）をここに貼り付けて「取り込む」を押してください：
+        </div>
+        <textarea id="claude-response" class="result-paste-area" placeholder='{"articles":[{"index":1,"importance":"高",...}]}'></textarea>
+        <button class="btn-sm accent" style="margin-top:8px" onclick="parseClaudeResponse()">✅ 分析結果を取り込む</button>
+      </div>
+    </div>`;
+}
+
+function copyPrompt() {
+  const el = document.getElementById('prompt-to-copy');
+  const text = el.value;
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('プロンプトをコピーしました'))
+    .catch(() => { el.select(); showToast('手動でコピーしてください（Ctrl+C）'); });
+}
+</script>
+</body>
+</html>
